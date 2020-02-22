@@ -1,4 +1,3 @@
 .vscode
 .terraform
 __pycache__
-*.tf
