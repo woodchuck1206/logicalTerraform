@@ -23,15 +23,15 @@ variable "my_region" {
 
 variable "target_group_path" {
     type    = string
-    default = "/"
+    default = "/" # what does it do?
 }
 
 variable "db_username" {
-    type    = string
+    type    = string # needs to set as environ variable #TF_VAR_db_username
 }
 
 variable "db_password" {
-    type    = string
+    type    = string # needs to set as environ variable #TF_VAR_db_password
 }
 
 variable "db_port" {

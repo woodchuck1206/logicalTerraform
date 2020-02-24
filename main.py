@@ -69,14 +69,18 @@ def main():
             break
         time.sleep(TIMEGAP)
 
+    print("IMPORTING OLD AMIS...")
     old = import_ami()
     new = {
         "front" : "",
         "back"  : "",
     }
+    print("GENERATING NEW AMIS...")
     packer.generate_ami(division)
+    print("RETRIEVING NEW AMIS...")
     new[division] = packer.retrieve_ami(division)
-
+    
+    print("CHECKING IF IT MEETS THE MINIMUM REQUIREMENTS...")
     for div in ["front", "back"]:
         if (new[div] == "" and old[div] == ""):
             packer.generate_ami(div)
@@ -87,13 +91,17 @@ def main():
             new[key] = old[key]
 
     if not (len(old["front"]) and len(old["back"])):
+        print("INITIATING AWS INFRA...")
         terraform.init_deploy(new)
     else:
         if division == "front":
+            print("DEPLOYING FRONT...")
             terraform.deploy_front(old, new)
         else:
+            print("DEPLOYING BACK...")
             terraform.deploy_back(old, new)
-
+    
+    print("SAVING AMIS...")
     export_ami(new)
 
 if __name__ == "__main__":
@@ -103,7 +111,6 @@ if __name__ == "__main__":
         print("UNEXPECTED ERROR OCCURED DURING EXECUTING BLUE/GREEN DEPLOYMENT!")
         print("RELIEVING LOCK...")
         print("TRY AGAIN LATER")
-        pass
     finally:
         free_lock()
     
