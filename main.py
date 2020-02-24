@@ -89,8 +89,10 @@ def main():
     for key in new:
         if new[key] == "":
             new[key] = old[key]
+        if old[key] == "":
+            old[key] = new[key]
 
-    if not (len(old["front"]) and len(old["back"])):
+    if ".terraform" not in os.listdir():
         print("INITIATING AWS INFRA...")
         terraform.init_deploy(new)
     else:

@@ -18,7 +18,7 @@ def generate_ami(division):
     subprocess.run("cd {};packer build {}".format(BASE[division], INPUT), shell=True)
 
 def retrieve_ami(division):
-    PATH    = os.join(BASE[division], OUTPUT)
+    PATH    = os.path.join(BASE[division], OUTPUT)
     with open(PATH, "r") as f:
         raw = f.read()
     parse   = json.loads(raw)

@@ -2,11 +2,13 @@ import subprocess
 import os
 from shutil import copyfile
 from tfasset import *
+import time
 
 TFPATH  = "./main.tf"
+ENVPATH = "/home/hyuck/tmpEnv"
 
 def tf_apply(init=False):
-    text = "terraform apply -auto-approve"
+    text = '''. {};terraform apply -auto-approve -var="my_access_key=$AWS_ACCESS" -var="my_secret_key=$AWS_SECRET"'''.format(ENVPATH)
     if init:
         text = "terraform init;" + text
 

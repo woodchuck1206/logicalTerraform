@@ -8,7 +8,7 @@ provider "aws" {{
 
 resource "aws_subnet" "Dev_public1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.48.0/20"
+    cidr_block = "172.31.224.0/19"
     availability_zone = "ap-northeast-2a"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public1"}}
@@ -16,7 +16,7 @@ resource "aws_subnet" "Dev_public1" {{
 
 resource "aws_subnet" "Dev_public2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.64.0/20"
+    cidr_block = "172.31.128.0/19"
     availability_zone = "ap-northeast-2c"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public2"}}
@@ -24,29 +24,16 @@ resource "aws_subnet" "Dev_public2" {{
 
 resource "aws_subnet" "Dev_private1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.80.0/20"
+    cidr_block = "172.31.160.0/19"
     availability_zone = "ap-northeast-2a"
     tags = {{ Name = "Dev_private1"}}
 }}
 
 resource "aws_subnet" "Dev_private2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.96.0/20"
+    cidr_block = "172.31.192.0/19"
     availability_zone = "ap-northeast-2c"
     tags = {{ Name = "Dev_private2"}}
-}}
-
-resource "aws_subnet" "Dev_rds1" {{
-    vpc_id = "vpc-3a61a851"
-    cidr_block="172.31.112.0/20"
-    availability_zone="ap-northeast-2a"
-    tags={{Name="Dev_rds1"}}
-}}
-resource "aws_subnet" "Dev_rds2" {{
-    vpc_id = "vpc-3a61a851"
-    cidr_block="172.31.128.0/20"
-    availability_zone="ap-northeast-2c"
-    tags={{Name="Dev_rds2"}}
 }}
 
 resource "aws_eip" "Dev_nat_ip" {{
@@ -111,6 +98,12 @@ resource "aws_security_group" "Dev_sg1" {{
         cidr_blocks = ["0.0.0.0/0"]
     }}
     ingress {{
+        from_port   = 8080
+        to_port     = 8080
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }}
+    ingress {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
@@ -138,7 +131,7 @@ resource "aws_security_group" "Dev_sg2" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
+        cidr_blocks = ["0.0.0.0/0"]
     }}
     egress {{
         from_port   = 0
@@ -162,25 +155,7 @@ resource "aws_security_group" "Dev_sg3" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
-    }}
-    egress {{
-        from_port   = 0
-        to_port     = 0
-        protocol    = "-1"
         cidr_blocks = ["0.0.0.0/0"]
-    }}
-}}
-
-resource "aws_security_group" "Dev_sg_db" {{
-    name        = "Dev_sg_db"
-    vpc_id      = "vpc-3a61a851"
-
-    ingress {{
-        from_port   = 3306
-        to_port     = 3306
-        protocol    = "tcp"
-        cidr_blocks = ["10.10.0.0/16"]
     }}
     egress {{
         from_port   = 0
@@ -192,7 +167,7 @@ resource "aws_security_group" "Dev_sg_db" {{
 
 resource "aws_instance" "Dev_Front1" {{
     instance_type           = "t2.micro"
-    ami                     = {0}
+    ami                     = "{0}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -202,7 +177,7 @@ resource "aws_instance" "Dev_Front1" {{
 
 resource "aws_instance" "Dev_Front2" {{
     instance_type           = "t2.micro"
-    ami                     = {1}
+    ami                     = "{1}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private2.id
@@ -212,7 +187,7 @@ resource "aws_instance" "Dev_Front2" {{
 
 resource "aws_instance" "Dev_Back1" {{
     instance_type           = "t2.micro"
-    ami                     = {2}
+    ami                     = "{2}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -221,30 +196,11 @@ resource "aws_instance" "Dev_Back1" {{
 
 resource "aws_instance" "Dev_Back2" {{
     instance_type           = "t2.micro"
-    ami                     = {3}
+    ami                     = "{3}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private2.id
     tags = {{ Name = "Dev_Back2"}}
-}}
-
-resource "aws_db_subnet_group" "DevDB" {{
-    name = "db"
-    subnet_ids = [aws_subnet.Dev_rds1.id, aws_subnet.Dev_rds2.id]
-}}
-
-resource "aws_db_instance" "Dev_db" {{
-  allocated_storage    = 20
-  engine               = "mysql"
-  engine_version       = "5.7.26"
-  instance_class       = "db.t2.micro"
-  username             = var.db_username
-  password             = var.db_password
-  port                 = var.db_port
-  db_subnet_group_name = aws_db_subnet_group.DevDB.name
-  vpc_security_group_ids = [aws_security_group.Dev_sg_db.id]
-  skip_final_snapshot    = true
-  multi_az               = true
 }}
 
 resource "aws_lb" "Dev_external" {{
@@ -423,23 +379,13 @@ resource "aws_autoscaling_attachment" "asg_front_old" {{
     alb_target_group_arn      = aws_alb_target_group.Dev-Front.arn
 }}
 
-resource "aws_autoscaling_attachment" "asg_front_new" {{
-    autoscaling_group_name    = aws_autoscaling_group.front_new_auto.id
-    alb_target_group_arn      = aws_alb_target_group.Dev-Front.arn
-}}
-
 resource "aws_autoscaling_attachment" "asg_back_old" {{
     autoscaling_group_name    = aws_autoscaling_group.back_old_auto.id
     alb_target_group_arn      = aws_alb_target_group.Dev-Back.arn
 }}
 
-resource "aws_autoscaling_attachment" "asg_back_new" {{
-    autoscaling_group_name    = aws_autoscaling_group.back_new_auto.id
-    alb_target_group_arn      = aws_alb_target_group.Dev-Back.arn
-}}
-
 resource "aws_launch_configuration" "Front_end_old" {{
-    image_id                = {0}
+    image_id                = "{0}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -448,7 +394,7 @@ resource "aws_launch_configuration" "Front_end_old" {{
 }}
 
 resource "aws_launch_configuration" "Front_end_new" {{
-    image_id                = {1}
+    image_id                = "{1}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -457,7 +403,7 @@ resource "aws_launch_configuration" "Front_end_new" {{
 }}
 
 resource "aws_launch_configuration" "Back_end_old" {{
-    image_id                = {2}
+    image_id                = "{2}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -466,7 +412,7 @@ resource "aws_launch_configuration" "Back_end_old" {{
 }}
 
 resource "aws_launch_configuration" "Back_end_new" {{
-    image_id                = {3}
+    image_id                = "{3}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -485,7 +431,7 @@ provider "aws" {{
 
 resource "aws_subnet" "Dev_public1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.48.0/20"
+    cidr_block = "172.31.224.0/19"
     availability_zone = "ap-northeast-2a"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public1"}}
@@ -493,7 +439,7 @@ resource "aws_subnet" "Dev_public1" {{
 
 resource "aws_subnet" "Dev_public2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.64.0/20"
+    cidr_block = "172.31.128.0/19"
     availability_zone = "ap-northeast-2c"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public2"}}
@@ -501,29 +447,16 @@ resource "aws_subnet" "Dev_public2" {{
 
 resource "aws_subnet" "Dev_private1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.80.0/20"
+    cidr_block = "172.31.160.0/19"
     availability_zone = "ap-northeast-2a"
     tags = {{ Name = "Dev_private1"}}
 }}
 
 resource "aws_subnet" "Dev_private2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.96.0/20"
+    cidr_block = "172.31.192.0/19"
     availability_zone = "ap-northeast-2c"
     tags = {{ Name = "Dev_private2"}}
-}}
-
-resource "aws_subnet" "Dev_rds1" {{
-    vpc_id = "vpc-3a61a851"
-    cidr_block="172.31.112.0/20"
-    availability_zone="ap-northeast-2a"
-    tags={{Name="Dev_rds1"}}
-}}
-resource "aws_subnet" "Dev_rds2" {{
-    vpc_id = "vpc-3a61a851"
-    cidr_block="172.31.128.0/20"
-    availability_zone="ap-northeast-2c"
-    tags={{Name="Dev_rds2"}}
 }}
 
 resource "aws_eip" "Dev_nat_ip" {{
@@ -588,6 +521,12 @@ resource "aws_security_group" "Dev_sg1" {{
         cidr_blocks = ["0.0.0.0/0"]
     }}
     ingress {{
+        from_port   = 8080
+        to_port     = 8080
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }}
+    ingress {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
@@ -615,7 +554,7 @@ resource "aws_security_group" "Dev_sg2" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
+        cidr_blocks = ["0.0.0.0/0"]
     }}
     egress {{
         from_port   = 0
@@ -639,25 +578,7 @@ resource "aws_security_group" "Dev_sg3" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
-    }}
-    egress {{
-        from_port   = 0
-        to_port     = 0
-        protocol    = "-1"
         cidr_blocks = ["0.0.0.0/0"]
-    }}
-}}
-
-resource "aws_security_group" "Dev_sg_db" {{
-    name        = "Dev_sg_db"
-    vpc_id      = "vpc-3a61a851"
-
-    ingress {{
-        from_port   = 3306
-        to_port     = 3306
-        protocol    = "tcp"
-        cidr_blocks = ["10.10.0.0/16"]
     }}
     egress {{
         from_port   = 0
@@ -669,7 +590,7 @@ resource "aws_security_group" "Dev_sg_db" {{
 
 resource "aws_instance" "Dev_Front1" {{
     instance_type           = "t2.micro"
-    ami                     = {0}
+    ami                     = "{0}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -679,7 +600,7 @@ resource "aws_instance" "Dev_Front1" {{
 
 resource "aws_instance" "Dev_Front2" {{
     instance_type           = "t2.micro"
-    ami                     = {1}
+    ami                     = "{1}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private2.id
@@ -689,7 +610,7 @@ resource "aws_instance" "Dev_Front2" {{
 
 resource "aws_instance" "Dev_Back1" {{
     instance_type           = "t2.micro"
-    ami                     = {2}
+    ami                     = "{2}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -698,30 +619,11 @@ resource "aws_instance" "Dev_Back1" {{
 
 resource "aws_instance" "Dev_Back2" {{
     instance_type           = "t2.micro"
-    ami                     = {3}
+    ami                     = "{3}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private2.id
     tags = {{ Name = "Dev_Back2"}}
-}}
-
-resource "aws_db_subnet_group" "DevDB" {{
-    name = "db"
-    subnet_ids = [aws_subnet.Dev_rds1.id, aws_subnet.Dev_rds2.id]
-}}
-
-resource "aws_db_instance" "Dev_db" {{
-  allocated_storage    = 20
-  engine               = "mysql"
-  engine_version       = "5.7.26"
-  instance_class       = "db.t2.micro"
-  username             = var.db_username
-  password             = var.db_password
-  port                 = var.db_port
-  db_subnet_group_name = aws_db_subnet_group.DevDB.name
-  vpc_security_group_ids = [aws_security_group.Dev_sg_db.id]
-  skip_final_snapshot    = true
-  multi_az               = true
 }}
 
 resource "aws_lb" "Dev_external" {{
@@ -916,7 +818,7 @@ resource "aws_autoscaling_attachment" "asg_back_old" {{
 
 
 resource "aws_launch_configuration" "Front_end_old" {{
-    image_id                = {0}
+    image_id                = "{0}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -925,7 +827,7 @@ resource "aws_launch_configuration" "Front_end_old" {{
 }}
 
 resource "aws_launch_configuration" "Front_end_new" {{
-    image_id                = {1}
+    image_id                = "{1}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -934,7 +836,7 @@ resource "aws_launch_configuration" "Front_end_new" {{
 }}
 
 resource "aws_launch_configuration" "Back_end_old" {{
-    image_id                = {2}
+    image_id                = "{2}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -954,7 +856,7 @@ provider "aws" {{
 
 resource "aws_subnet" "Dev_public1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.48.0/20"
+    cidr_block = "172.31.224.0/19"
     availability_zone = "ap-northeast-2a"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public1"}}
@@ -962,7 +864,7 @@ resource "aws_subnet" "Dev_public1" {{
 
 resource "aws_subnet" "Dev_public2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.64.0/20"
+    cidr_block = "172.31.128.0/19"
     availability_zone = "ap-northeast-2c"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public2"}}
@@ -970,29 +872,16 @@ resource "aws_subnet" "Dev_public2" {{
 
 resource "aws_subnet" "Dev_private1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.80.0/20"
+    cidr_block = "172.31.160.0/19"
     availability_zone = "ap-northeast-2a"
     tags = {{ Name = "Dev_private1"}}
 }}
 
 resource "aws_subnet" "Dev_private2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.96.0/20"
+    cidr_block = "172.31.192.0/19"
     availability_zone = "ap-northeast-2c"
     tags = {{ Name = "Dev_private2"}}
-}}
-
-resource "aws_subnet" "Dev_rds1" {{
-    vpc_id = "vpc-3a61a851"
-    cidr_block="172.31.112.0/20"
-    availability_zone="ap-northeast-2a"
-    tags={{Name="Dev_rds1"}}
-}}
-resource "aws_subnet" "Dev_rds2" {{
-    vpc_id = "vpc-3a61a851"
-    cidr_block="172.31.128.0/20"
-    availability_zone="ap-northeast-2c"
-    tags={{Name="Dev_rds2"}}
 }}
 
 resource "aws_eip" "Dev_nat_ip" {{
@@ -1057,6 +946,12 @@ resource "aws_security_group" "Dev_sg1" {{
         cidr_blocks = ["0.0.0.0/0"]
     }}
     ingress {{
+        from_port   = 8080
+        to_port     = 8080
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }}
+    ingress {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
@@ -1084,7 +979,7 @@ resource "aws_security_group" "Dev_sg2" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
+        cidr_blocks = ["0.0.0.0/0"]
     }}
     egress {{
         from_port   = 0
@@ -1108,25 +1003,7 @@ resource "aws_security_group" "Dev_sg3" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
-    }}
-    egress {{
-        from_port   = 0
-        to_port     = 0
-        protocol    = "-1"
         cidr_blocks = ["0.0.0.0/0"]
-    }}
-}}
-
-resource "aws_security_group" "Dev_sg_db" {{
-    name        = "Dev_sg_db"
-    vpc_id      = "vpc-3a61a851"
-
-    ingress {{
-        from_port   = 3306
-        to_port     = 3306
-        protocol    = "tcp"
-        cidr_blocks = ["10.10.0.0/16"]
     }}
     egress {{
         from_port   = 0
@@ -1138,7 +1015,7 @@ resource "aws_security_group" "Dev_sg_db" {{
 
 resource "aws_instance" "Dev_Front1" {{
     instance_type           = "t2.micro"
-    ami                     = {0}
+    ami                     = "{0}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -1148,7 +1025,7 @@ resource "aws_instance" "Dev_Front1" {{
 
 resource "aws_instance" "Dev_Front2" {{
     instance_type           = "t2.micro"
-    ami                     = {1}
+    ami                     = "{1}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private2.id
@@ -1158,7 +1035,7 @@ resource "aws_instance" "Dev_Front2" {{
 
 resource "aws_instance" "Dev_Back1" {{
     instance_type           = "t2.micro"
-    ami                     = {2}
+    ami                     = "{2}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -1167,30 +1044,11 @@ resource "aws_instance" "Dev_Back1" {{
 
 resource "aws_instance" "Dev_Back2" {{
     instance_type           = "t2.micro"
-    ami                     = {3}
+    ami                     = "{3}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private2.id
     tags = {{ Name = "Dev_Back2"}}
-}}
-
-resource "aws_db_subnet_group" "DevDB" {{
-    name = "db"
-    subnet_ids = [aws_subnet.Dev_rds1.id, aws_subnet.Dev_rds2.id]
-}}
-
-resource "aws_db_instance" "Dev_db" {{
-  allocated_storage    = 20
-  engine               = "mysql"
-  engine_version       = "5.7.26"
-  instance_class       = "db.t2.micro"
-  username             = var.db_username
-  password             = var.db_password
-  port                 = var.db_port
-  db_subnet_group_name = aws_db_subnet_group.DevDB.name
-  vpc_security_group_ids = [aws_security_group.Dev_sg_db.id]
-  skip_final_snapshot    = true
-  multi_az               = true
 }}
 
 resource "aws_lb" "Dev_external" {{
@@ -1384,7 +1242,7 @@ resource "aws_autoscaling_attachment" "asg_back_old" {{
 }}
 
 resource "aws_launch_configuration" "Front_end_old" {{
-    image_id                = {0}
+    image_id                = "{0}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -1393,7 +1251,7 @@ resource "aws_launch_configuration" "Front_end_old" {{
 }}
 
 resource "aws_launch_configuration" "Front_end_new" {{
-    image_id                = {1}
+    image_id                = "{1}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -1402,7 +1260,7 @@ resource "aws_launch_configuration" "Front_end_new" {{
 }}
 
 resource "aws_launch_configuration" "Back_end_old" {{
-    image_id                = {2}
+    image_id                = "{2}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -1422,7 +1280,7 @@ provider "aws" {{
 
 resource "aws_subnet" "Dev_public1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.48.0/20"
+    cidr_block = "172.31.224.0/19"
     availability_zone = "ap-northeast-2a"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public1"}}
@@ -1430,7 +1288,7 @@ resource "aws_subnet" "Dev_public1" {{
 
 resource "aws_subnet" "Dev_public2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.64.0/20"
+    cidr_block = "172.31.128.0/19"
     availability_zone = "ap-northeast-2c"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public2"}}
@@ -1438,29 +1296,16 @@ resource "aws_subnet" "Dev_public2" {{
 
 resource "aws_subnet" "Dev_private1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.80.0/20"
+    cidr_block = "172.31.160.0/19"
     availability_zone = "ap-northeast-2a"
     tags = {{ Name = "Dev_private1"}}
 }}
 
 resource "aws_subnet" "Dev_private2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.96.0/20"
+    cidr_block = "172.31.192.0/19"
     availability_zone = "ap-northeast-2c"
     tags = {{ Name = "Dev_private2"}}
-}}
-
-resource "aws_subnet" "Dev_rds1" {{
-  vpc_id = "vpc-3a61a851"
-  cidr_block="172.31.112.0/20"
-  availability_zone="ap-northeast-2a"
-  tags={{Name="Dev_rds1"}}
-}}
-resource "aws_subnet" "Dev_rds2" {{
-  vpc_id = "vpc-3a61a851"
-  cidr_block="172.31.128.0/20"
-  availability_zone="ap-northeast-2c"
-  tags={{Name="Dev_rds2"}}
 }}
 
 resource "aws_eip" "Dev_nat_ip" {{
@@ -1525,6 +1370,12 @@ resource "aws_security_group" "Dev_sg1" {{
         cidr_blocks = ["0.0.0.0/0"]
     }}
     ingress {{
+        from_port   = 8080
+        to_port     = 8080
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }}
+    ingress {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
@@ -1552,7 +1403,7 @@ resource "aws_security_group" "Dev_sg2" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
+        cidr_blocks = ["0.0.0.0/0"]
     }}
     egress {{
         from_port   = 0
@@ -1576,25 +1427,7 @@ resource "aws_security_group" "Dev_sg3" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
-    }}
-    egress {{
-        from_port   = 0
-        to_port     = 0
-        protocol    = "-1"
         cidr_blocks = ["0.0.0.0/0"]
-    }}
-}}
-
-resource "aws_security_group" "Dev_sg_db" {{
-    name        = "Dev_sg_db"
-    vpc_id      = "vpc-3a61a851"
-
-    ingress {{
-        from_port   = 3306
-        to_port     = 3306
-        protocol    = "tcp"
-        cidr_blocks = ["10.10.0.0/16"]
     }}
     egress {{
         from_port   = 0
@@ -1606,7 +1439,7 @@ resource "aws_security_group" "Dev_sg_db" {{
 
 resource "aws_instance" "Dev_Front1" {{
     instance_type           = "t2.micro"
-    ami                     = {0}
+    ami                     = "{0}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -1616,7 +1449,7 @@ resource "aws_instance" "Dev_Front1" {{
 
 resource "aws_instance" "Dev_Front2" {{
     instance_type           = "t2.micro"
-    ami                     = {1}
+    ami                     = "{1}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private2.id
@@ -1626,7 +1459,7 @@ resource "aws_instance" "Dev_Front2" {{
 
 resource "aws_instance" "Dev_Back1" {{
     instance_type           = "t2.micro"
-    ami                     = {2}
+    ami                     = "{2}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -1635,30 +1468,11 @@ resource "aws_instance" "Dev_Back1" {{
 
 resource "aws_instance" "Dev_Back2" {{
     instance_type           = "t2.micro"
-    ami                     = {3}
+    ami                     = "{3}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private2.id
     tags = {{ Name = "Dev_Back2"}}
-}}
-
-resource "aws_db_subnet_group" "DevDB" {{
-    name = "db"
-    subnet_ids = [aws_subnet.Dev_rds1.id, aws_subnet.Dev_rds2.id]
-}}
-
-resource "aws_db_instance" "Dev_db" {{
-  allocated_storage    = 20
-  engine               = "mysql"
-  engine_version       = "5.7.26"
-  instance_class       = "db.t2.micro"
-  username             = var.db_username
-  password             = var.db_password
-  port                 = var.db_port
-  db_subnet_group_name = aws_db_subnet_group.DevDB.name
-  vpc_security_group_ids = [aws_security_group.Dev_sg_db.id]
-  skip_final_snapshot    = true
-  multi_az               = true
 }}
 
 resource "aws_lb" "Dev_external" {{
@@ -1853,7 +1667,7 @@ resource "aws_autoscaling_attachment" "asg_back_old" {{
 }}
 
 resource "aws_launch_configuration" "Front_end_old" {{
-    image_id                = {0}
+    image_id                = "{0}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -1862,7 +1676,7 @@ resource "aws_launch_configuration" "Front_end_old" {{
 }}
 
 resource "aws_launch_configuration" "Back_end_old" {{
-    image_id                = {2}
+    image_id                = "{2}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -1871,7 +1685,7 @@ resource "aws_launch_configuration" "Back_end_old" {{
 }}
 
 resource "aws_launch_configuration" "Back_end_new" {{
-    image_id                = {3}
+    image_id                = "{3}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -1891,7 +1705,7 @@ provider "aws" {{
 
 resource "aws_subnet" "Dev_public1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.48.0/20"
+    cidr_block = "172.31.224.0/19"
     availability_zone = "ap-northeast-2a"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public1"}}
@@ -1899,7 +1713,7 @@ resource "aws_subnet" "Dev_public1" {{
 
 resource "aws_subnet" "Dev_public2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.64.0/20"
+    cidr_block = "172.31.128.0/19"
     availability_zone = "ap-northeast-2c"
     map_public_ip_on_launch = true
     tags = {{ Name = "Dev_public2"}}
@@ -1907,29 +1721,16 @@ resource "aws_subnet" "Dev_public2" {{
 
 resource "aws_subnet" "Dev_private1" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.80.0/20"
+    cidr_block = "172.31.160.0/19"
     availability_zone = "ap-northeast-2a"
     tags = {{ Name = "Dev_private1"}}
 }}
 
 resource "aws_subnet" "Dev_private2" {{
     vpc_id = "vpc-3a61a851"
-    cidr_block = "172.31.96.0/20"
+    cidr_block = "172.31.192.0/19"
     availability_zone = "ap-northeast-2c"
     tags = {{ Name = "Dev_private2"}}
-}}
-
-resource "aws_subnet" "Dev_rds1" {{
-  vpc_id = "vpc-3a61a851"
-  cidr_block="172.31.112.0/20"
-  availability_zone="ap-northeast-2a"
-  tags={{Name="Dev_rds1"}}
-}}
-resource "aws_subnet" "Dev_rds2" {{
-  vpc_id = "vpc-3a61a851"
-  cidr_block="172.31.128.0/20"
-  availability_zone="ap-northeast-2c"
-  tags={{Name="Dev_rds2"}}
 }}
 
 resource "aws_eip" "Dev_nat_ip" {{
@@ -1994,6 +1795,12 @@ resource "aws_security_group" "Dev_sg1" {{
         cidr_blocks = ["0.0.0.0/0"]
     }}
     ingress {{
+        from_port   = 8080
+        to_port     = 8080
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }}
+    ingress {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
@@ -2021,7 +1828,7 @@ resource "aws_security_group" "Dev_sg2" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
+        cidr_blocks = ["0.0.0.0/0"]
     }}
     egress {{
         from_port   = 0
@@ -2045,25 +1852,7 @@ resource "aws_security_group" "Dev_sg3" {{
         from_port   = 22
         to_port     = 22
         protocol    = "tcp"
-        cidr_blocks = ["10.10.11.0/24"]
-    }}
-    egress {{
-        from_port   = 0
-        to_port     = 0
-        protocol    = "-1"
         cidr_blocks = ["0.0.0.0/0"]
-    }}
-}}
-
-resource "aws_security_group" "Dev_sg_db" {{
-    name        = "Dev_sg_db"
-    vpc_id      = "vpc-3a61a851"
-
-    ingress {{
-        from_port   = 3306
-        to_port     = 3306
-        protocol    = "tcp"
-        cidr_blocks = ["10.10.0.0/16"]
     }}
     egress {{
         from_port   = 0
@@ -2075,7 +1864,7 @@ resource "aws_security_group" "Dev_sg_db" {{
 
 resource "aws_instance" "Dev_Front1" {{
     instance_type           = "t2.micro"
-    ami                     = {0}
+    ami                     = "{0}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -2085,7 +1874,7 @@ resource "aws_instance" "Dev_Front1" {{
 
 resource "aws_instance" "Dev_Front2" {{
     instance_type           = "t2.micro"
-    ami                     = {1}
+    ami                     = "{1}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg2.id]
     subnet_id               = aws_subnet.Dev_private2.id
@@ -2095,7 +1884,7 @@ resource "aws_instance" "Dev_Front2" {{
 
 resource "aws_instance" "Dev_Back1" {{
     instance_type           = "t2.micro"
-    ami                     = {2}
+    ami                     = "{2}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private1.id
@@ -2104,30 +1893,11 @@ resource "aws_instance" "Dev_Back1" {{
 
 resource "aws_instance" "Dev_Back2" {{
     instance_type           = "t2.micro"
-    ami                     = {3}
+    ami                     = "{3}"
     key_name                = var.key_name
     vpc_security_group_ids  = [aws_security_group.Dev_sg3.id]
     subnet_id               = aws_subnet.Dev_private2.id
     tags = {{ Name = "Dev_Back2"}}
-}}
-
-resource "aws_db_subnet_group" "DevDB" {{
-    name = "db"
-    subnet_ids = [aws_subnet.Dev_rds1.id, aws_subnet.Dev_rds2.id]
-}}
-
-resource "aws_db_instance" "Dev_db" {{
-  allocated_storage    = 20
-  engine               = "mysql"
-  engine_version       = "5.7.26"
-  instance_class       = "db.t2.micro"
-  username             = var.db_username
-  password             = var.db_password
-  port                 = var.db_port
-  db_subnet_group_name = aws_db_subnet_group.DevDB.name
-  vpc_security_group_ids = [aws_security_group.Dev_sg_db.id]
-  skip_final_snapshot    = true
-  multi_az               = true
 }}
 
 resource "aws_lb" "Dev_external" {{
@@ -2323,7 +2093,7 @@ resource "aws_autoscaling_attachment" "asg_back_new" {{
 }}
 
 resource "aws_launch_configuration" "Front_end_old" {{
-    image_id                = {0}
+    image_id                = "{0}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -2332,7 +2102,7 @@ resource "aws_launch_configuration" "Front_end_old" {{
 }}
 
 resource "aws_launch_configuration" "Back_end_old" {{
-    image_id                = {2}
+    image_id                = "{2}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
@@ -2341,7 +2111,7 @@ resource "aws_launch_configuration" "Back_end_old" {{
 }}
 
 resource "aws_launch_configuration" "Back_end_new" {{
-    image_id                = {3}
+    image_id                = "{3}"
     instance_type           = "t2.micro"
     associate_public_ip_address = true
     lifecycle {{
