@@ -8,9 +8,9 @@ TFPATH  = "./main.tf"
 ENVPATH = "/home/ubuntu/.tmpEnv"
 
 def tf_apply(init=False):
-    text = '''. {};terraform apply -auto-approve -var="my_access_key=$AWS_ACCESS" -var="my_secret_key=$AWS_SECRET"'''.format(ENVPATH)
+    text = '''. {};/home/ubuntu/localBin/terraform apply -auto-approve -var="my_access_key=$AWS_ACCESS" -var="my_secret_key=$AWS_SECRET"'''.format(ENVPATH)
     if init:
-        text = "terraform init;" + text
+        text = "/home/ubuntu/localBin/terraform init;" + text
 
     subprocess.run(text, shell=True) 
 
