@@ -2,7 +2,7 @@ import json
 import subprocess
 import os
 
-BACKBASE    = "../Springboot_Back/packer"
+BACKBASE    = "../devops/packer"
 FRONTBASE   = "../vue_front"
 BASE        = {
     "front" : FRONTBASE,
