@@ -15,7 +15,7 @@ def parse_ami(artifact_id):
     return artifact_id[artifact_id.find(":")+1:]
 
 def generate_ami(division):
-    subprocess.run("cd {};/home/ubuntu/localBin/packer build {}".format(BASE[division], INPUT), shell=True)
+    subprocess.run("cd {};. /home/ubuntu/.tmpEnv;/home/ubuntu/localBin/packer build {}".format(BASE[division], INPUT), shell=True)
 
 def retrieve_ami(division):
     PATH    = os.path.join(BASE[division], OUTPUT)
